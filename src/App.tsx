@@ -30,7 +30,8 @@ import { ChallengeHud } from './components/ui/ChallengeHud'
 import { DecisionMoment } from './components/ui/ChallengePanels'
 import { ChallengeResults } from './components/ui/ChallengeResults'
 import { ChallengeTournament } from './components/ui/ChallengeTournament'
-import { ChallengeDemoOverlay } from './components/ui/ChallengeDemoOverlay'
+import { useDemoStore } from './store/useDemoStore'
+import { DemoStage, DemoModeButton } from './components/ui/DemoStage'
 import { startDemo as startPhase2Demo, stopDemo as stopPhase2Demo } from './store/demo'
 
 export default function App() {
@@ -48,6 +49,15 @@ export default function App() {
     challengePhase === 'paused' ||
     challengePhase === 'decision' ||
     challengePhase === 'finished'
+
+  // DEMO MODE strips the interface back to the city and the narration — this
+  // is the single switch that turns a dashboard into something recordable
+  const demoActive = useDemoStore((s) => s.active)
+  const demoUi = useDemoStore((s) => s.ui)
+  const stopDemo = useDemoStore((s) => s.stop)
+  const showChrome = !demoActive
+  const showHud = !demoActive || !!demoUi.hud
+  const showPanels = !demoActive || !!demoUi.panels
   const setPlacementTool = useCityStore((s) => s.setPlacementTool)
   const runScenario = useCityStore((s) => s.runScenario)
   const optimize = useOptimizerStore((s) => s.optimize)
@@ -66,6 +76,7 @@ export default function App() {
         cancelDemolish()
         setDemolishMode(false)
         setShowHistory(false)
+        stopDemo()
       }
       if (typing) return
       if (e.key === ' ') {
@@ -80,20 +91,22 @@ export default function App() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [setPlacementTool, runScenario, optimize, closeReport, cancelBuild, cancelDemolish, setDemolishMode, toggleClock, openChallenge])
+  }, [setPlacementTool, runScenario, optimize, closeReport, cancelBuild, cancelDemolish, setDemolishMode, toggleClock, openChallenge, stopDemo])
 
   return (
-    <div className="flex h-full w-full flex-col overflow-hidden bg-ink-900 bg-techgrid">
-      <TopBar onTogglePanel={(s) => setPanel((p) => (p === s ? null : s))} />
-      <SandboxBar onShowHistory={() => setShowHistory(true)} />
+    <div className="relative flex h-full w-full flex-col overflow-hidden bg-ink-900 bg-techgrid">
+      {showChrome && <TopBar onTogglePanel={(s) => setPanel((p) => (p === s ? null : s))} />}
+      {showChrome && <SandboxBar onShowHistory={() => setShowHistory(true)} />}
 
-      {inMatch && <ChallengeHud />}
+      {inMatch && showHud && <ChallengeHud />}
 
       <div className="relative flex min-h-0 flex-1">
         {/* LEFT — city + simulation controls */}
-        <aside className="hidden w-[276px] shrink-0 border-r border-white/[0.06] lg:block xl:w-[300px]">
-          <LeftPanel />
-        </aside>
+        {showPanels && (
+          <aside className="hidden w-[276px] shrink-0 border-r border-white/[0.06] lg:block xl:w-[300px]">
+            <LeftPanel />
+          </aside>
+        )}
 
         {/* CENTER — 3D city + charts */}
         <main className="flex min-w-0 flex-1 flex-col">
@@ -112,27 +125,31 @@ export default function App() {
                 <OptimizationReport />
               </>
             )}
-            <AICommandBar />
-            <BuildPreview />
+            {showChrome && <AICommandBar />}
+            {showChrome && <BuildPreview />}
             <DemolishDialog />
             <DecisionMoment />
-            <ChallengeResults />
+            {!demoActive && <ChallengeResults />}
             {showHistory && <CityHistoryPanel onClose={() => setShowHistory(false)} />}
-            <div className="pointer-events-none absolute inset-0 scan" />
+            {!demoActive && <div className="pointer-events-none absolute inset-0 scan" />}
           </div>
-          <div className="h-[188px] shrink-0 md:h-[200px] xl:h-[212px]">
-            <BottomPanel />
-          </div>
+          {showPanels && (
+            <div className="h-[188px] shrink-0 md:h-[200px] xl:h-[212px]">
+              <BottomPanel />
+            </div>
+          )}
         </main>
 
         {/* RIGHT — AI analysis + metrics */}
-        <aside className="hidden w-[320px] shrink-0 border-l border-white/[0.06] lg:block xl:w-[352px]">
-          <RightPanel />
-        </aside>
+        {(showPanels || demoUi.aiFocus) && (
+          <aside className="hidden w-[320px] shrink-0 border-l border-white/[0.06] lg:block xl:w-[352px]">
+            <RightPanel />
+          </aside>
+        )}
 
         {challengePhase === 'setup' && <ChallengeSetup />}
+        {challengePhase === 'setup' && <DemoModeButton />}
         <ChallengeTournament />
-        <ChallengeDemoOverlay />
 
         {/* mobile / tablet drawers */}
         {panel && (
@@ -150,6 +167,10 @@ export default function App() {
           </div>
         )}
       </div>
+
+      {/* the demo layer sits above everything, so the letterbox frames the
+          whole window rather than just the 3D column */}
+      <DemoStage />
     </div>
   )
 }

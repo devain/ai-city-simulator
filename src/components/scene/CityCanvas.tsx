@@ -14,6 +14,7 @@ import { ConstructionSites } from './ConstructionSites'
 import { DistrictHighlight } from './DistrictHighlight'
 import { PlacementGhost } from './PlacementGhost'
 import { LiveCityView, MatchCityView, type CityView } from './CityViewContext'
+import { CinematicCamera } from './CinematicCamera'
 import { Landmarks } from './Landmarks'
 import { CameraDirector } from './CameraDirector'
 import { useCityStore } from '../../store/useCityStore'
@@ -109,6 +110,7 @@ export function CityCanvas() {
         <SimPulse />
         <Rig />
         <CameraDirector />
+        <CinematicCamera channel="live" />
         <EffectComposer enableNormalPass={false} multisampling={0}>
           <Bloom
             intensity={0.72}
@@ -165,6 +167,7 @@ export function MatchCanvas({
           <Props />
           <Traffic />
           <MatchRig autoRotate={autoRotate} />
+          <CinematicCamera channel={view.side} />
           <Preload all />
         </MatchCityView>
       </Suspense>

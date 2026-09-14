@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { MatchCanvas } from '../scene/CityCanvas'
 import { useChallengeStore } from '../../store/useChallengeStore'
 import { useCityStore } from '../../store/useCityStore'
+import { useDemoStore } from '../../store/useDemoStore'
 import { AI_PERSONALITIES } from '../../ai/AIPersonality'
 import { money } from '../../lib/format'
 import type { CitySnapshot } from '../../challenge/CityRuntime'
@@ -142,6 +143,10 @@ export function SplitCityView() {
   const autoRotate = useChallengeStore((s) => s.autoRotate)
   const heatLayer = useCityStore((s) => s.heatLayer)
   const [focus, setFocus] = useState<'both' | 'human' | 'ai'>('both')
+  // in demo mode the cinematic camera owns framing, and the stat panels are
+  // chrome the recording does not want
+  const demoActive = useDemoStore((s) => s.active)
+  const demoStage = useDemoStore((s) => s.stage)
 
   if (!match) return null
   const personality = AI_PERSONALITIES[match.setup.personality]
@@ -155,6 +160,10 @@ export function SplitCityView() {
 
   const humanWide = focus === 'human'
   const aiWide = focus === 'ai'
+  // the stat cards are a distraction over a title card, but essential when the
+  // demo is actually comparing the two cities
+  const showPanels =
+    !demoActive || ['SETUP', 'HUMAN_ACTION', 'CRISIS', 'FINAL_COMPARISON', 'SIMULATION_FAST_FORWARD'].includes(demoStage)
 
   return (
     <div className="absolute inset-0 flex">
@@ -176,15 +185,17 @@ export function SplitCityView() {
           }}
           autoRotate={false}
         />
-        <SidePanel
-          title="Your city"
-          subtitle={match.setup.watchOnly ? 'no player — untouched' : 'you have the controls'}
-          accent="text-sky-200"
-          snap={match.human}
-          score={match.scores.human}
-          other={match.ai}
-          otherScore={match.scores.ai}
-        />
+        {showPanels && (
+          <SidePanel
+            title="Your city"
+            subtitle={match.setup.watchOnly ? 'no player — untouched' : 'you have the controls'}
+            accent="text-sky-200"
+            snap={match.human}
+            score={match.scores.human}
+            other={match.ai}
+            otherScore={match.scores.ai}
+          />
+        )}
       </div>
 
       {/* ---- AI ---- */}
@@ -203,22 +214,26 @@ export function SplitCityView() {
             current: match.ai.result,
             interactive: false,
           }}
-          autoRotate={autoRotate}
+          autoRotate={autoRotate && !demoActive}
         />
-        <SidePanel
-          title={`${personality.label} AI`}
-          subtitle={personality.style}
-          accent="text-fuchsia-200"
-          snap={match.ai}
-          score={match.scores.ai}
-          other={match.human}
-          otherScore={match.scores.human}
-        />
+        {showPanels && (
+          <SidePanel
+            title={`${personality.label} AI`}
+            subtitle={personality.style}
+            accent="text-fuchsia-200"
+            snap={match.ai}
+            score={match.scores.ai}
+            other={match.human}
+            otherScore={match.scores.human}
+          />
+        )}
       </div>
 
-      <p className="pointer-events-none absolute bottom-1 left-1/2 z-10 -translate-x-1/2 font-mono text-[8.5px] uppercase tracking-[0.2em] text-slate-600">
-        double-click a city to enlarge it
-      </p>
+      {!demoActive && (
+        <p className="pointer-events-none absolute bottom-1 left-1/2 z-10 -translate-x-1/2 font-mono text-[8.5px] uppercase tracking-[0.2em] text-slate-600">
+          double-click a city to enlarge it
+        </p>
+      )}
     </div>
   )
 }

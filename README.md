@@ -4,6 +4,11 @@ An interactive smart-city sandbox in the browser. A procedural 3D city, a transp
 engine, and an AI that you can build alongside, ask for help, hand the whole city to — or **play
 against**.
 
+> **DEMO MODE.** One button plays the whole thing: a complete ten-year
+> Human-vs-AI match in 88 seconds, letterboxed, narrated, with the dashboard
+> stripped away and a cinematic camera on both cities. Deterministic, so two
+> takes cut together — built for screen recording.
+>
 > **AI vs HUMAN — 10-year city challenge.** Same city seed, same $100M, same ten years, same
 > seeded emergencies. You run one city, an autonomous AI runs the other, and at the end a
 > transparent seven-component score says who built the better city. Nothing is rigged: the AI
@@ -104,6 +109,8 @@ objective, $25M) so you can watch the request move them.
 5. **Scenario challenges** on the left load a stressed city and a brief (Population Boom, Downtown
    Congestion, School Crisis, Energy Crisis, Climate Challenge…).
 
+**In demo mode:** `Space` pause · `←` `→` step between shots · `Esc` exit.
+
 **Keyboard:** `C` open the AI-vs-Human challenge · `O` optimize · `T` start/stop the calendar ·
 `H` city history · `Space` run scenario simulation · `D` demo · `/` focus the command bar ·
 `Esc` cancel placing, demolishing or a dialog.
@@ -161,6 +168,9 @@ src/
 │   ├── CityAIPlanner.ts        # ← the planner boundary + LLM-ready seam
 │   ├── challenges.ts           # the 8 scenario challenges
 │   └── cityAnalyst.ts          # Phase 1 analyst: analyse() + ask()
+├── demo/                       # ── Phase 6.5 recording-grade demo ──
+│   ├── DemoTimeline.ts         # the shot list as data: stage, duration, camera, UI, narration
+│   └── cameraBus.ts            # per-canvas camera channels + the named shot library
 ├── challenge/                  # ── the Phase 6 AI-vs-Human match ──
 │   ├── CityRuntime.ts          # a city that can be advanced headlessly and deterministically
 │   ├── ChallengeRunner.ts      # ← the match: two cities, one clock, one event timeline
@@ -195,6 +205,7 @@ src/
 │   ├── useOptimizerStore.ts    # the optimizer's control plane + execution director
 │   ├── useSandboxStore.ts      # Phase 5: modes, treasury, the calendar, build/demolish, history
 │   ├── useChallengeStore.ts    # Phase 6: the match clock and the bridge to the live city
+│   ├── useDemoStore.ts         # Phase 6.5: the demo state machine, one rAF loop
 │   └── demo.ts                 # the ~85-second presentation — types a sentence, then watches
 ├── components/
 │   ├── scene/
@@ -211,12 +222,14 @@ src/
 │   │   ├── DistrictHighlight.tsx # the survey marker over the site the AI chose, before it builds
 │   │   ├── PlacementGhost.tsx  # the translucent building that follows the cursor
 │   │   ├── CityViewContext.tsx # which city a scene draws — the seam that makes split-screen work
+│   │   ├── CinematicCamera.tsx # the per-canvas camera controller: spherical moves, FOV, shake
 │   │   └── CameraDirector.tsx  # the cinematic camera: flyTo / focusOn / orbitAround / overview
 │   └── ui/
 │       ├── TopBar.tsx          # live readouts + DEMO
 │       ├── LeftPanel.tsx       # scenarios, challenges, simulation control, build tool
 │       ├── RightPanel.tsx      # optimizer panel + Phase 1 analyst, metrics, chat
 │       ├── BottomPanel.tsx     # time-series, delta bars, pressure radar, event log
+│       ├── DemoStage.tsx       # demo mode: letterbox, narration, scrubber, DEMO MODE button
 │       ├── ChallengeSetup.tsx  # the match terms — seed, budget, population, objective, opponent
 │       ├── SplitCityView.tsx   # both cities rendered at once, stats coloured against each other
 │       ├── ChallengeHud.tsx    # the match clock, the live score, PLAY / PAUSE / 1× 5× 20× / SKIP
@@ -290,7 +303,98 @@ model drops in behind the same call. **The store never parses a string itself.**
 
 ---
 
-## 3. Phase 6 — AI vs Human
+## 3. Phase 6.5 — demo mode
+
+Press the **DEMO MODE** button — on the status strip, or on the challenge setup screen.
+
+Eighty-eight seconds, eight acts, no dashboard:
+
+```
+ACT I    The challenge        title card over two identical cities
+ACT II   Early growth         a slow pan; the human starts building
+ACT III  The problem          the AI reads the city and ranks what is wrong
+ACT IV   The decision         what it chose, and why
+ACT V    Construction         camera descends and orbits the build site
+ACT VI   Years pass           a time-lapse to year 10 — then the gap
+ACT VII  Year ten             identical framing, the numbers side by side
+ACT VIII The result           the winner, pulled back, held
+```
+
+### A shot list, not a setTimeout chain
+
+`demo/DemoTimeline.ts` is the whole sequence as data. Each stage declares its
+duration, its camera move, which chrome is visible, how fast the simulation runs, and
+what is narrated:
+
+```ts
+{
+  id: 'AI_CONSTRUCTION',
+  seconds: 9,
+  act: 'Act V — Construction',
+  speed: 340,
+  ui: { cities: true, hud: true, aiFocus: true, letterbox: true },
+  enter: ({ match }) => {
+    const site = aiSite(match)
+    if (site) shots.followConstruction('ai', site.x, site.z, 2800)
+    shots.flyTo('human', 0, 0, 165, 2800)
+  },
+}
+```
+
+No stage knows about any other, and `useDemoStore` walks the list from a single
+`requestAnimationFrame` loop — so the sequence can be re-timed, reordered or scrubbed by
+editing that one file, and the scrubber in the transport strip jumps to any shot.
+
+### The camera
+
+`CinematicCamera` is one controller per canvas, listening on its own channel
+(`live` / `human` / `ai`), so the two match cities can be directed independently. Moves are
+interpolated in **spherical** space — look-at point, distance, polar, azimuth — so the camera
+arcs around a city instead of sliding through it. It never cuts.
+
+The named shots read as a shot list rather than coordinates:
+
+```
+establishing · overview · flyTo · focusOnObject · followConstruction
+panAcrossCity · heroShot · splitComparison · pullBack · emphasise
+```
+
+Each supports easing, an orbit that keeps the shot breathing after it lands, a FOV ease for a
+subtle dolly-zoom, and a short decaying shake scaled by distance — used exactly once, when a
+crisis is real. Manual input still cancels any move, except while a demo holds the channel.
+
+### Nothing is asserted over the simulation
+
+The narration reads live match state rather than printing a script. That is the rule the whole
+timeline obeys, and it has teeth:
+
+- The crisis card is `TRAFFIC CRISIS` only if the human's traffic is genuinely high *and* worse
+  than the AI's. Otherwise it reads `THE AI OVERBUILT` or `THE GAP OPENS`, with both real
+  percentages underneath.
+- Act IV says `PLAN SELECTED` only when the AI actually chose to build. When it decides to hold
+  — which it does, often — the card reads `HOLDING CAPITAL` and quotes its real reason.
+- The winner card is whatever the score produced. In the run recorded for this README it was
+  `AI WINS · Human 61.4 · AI 63.4`; a different personality or objective flips it.
+
+### Deterministic
+
+One fixed seed (`20250114`), one fixed human script, one pure match engine. The human's moves
+are deliberately *reactive* — housing while demand is loud, services once the problems are
+already visible — because that is how most people play and it is the habit the AI's foresight is
+meant to beat. The AI's moves are not scripted at all.
+
+Two takes produce the same film, which is what makes it usable for a trailer.
+
+### Recording it
+
+Everything but the city and the narration is hidden: both top bars, the build toolbar, the
+dashboards, the command bar, the scanline overlay. The transport strip sits at 25% opacity until
+you hover it, and the final frame — `CAN YOU DO BETTER?` over two mature cities — is built to be
+the last frame of a cut.
+
+---
+
+## 4. Phase 6 — AI vs Human
 
 Press **`C`**, or the **AI vs HUMAN** button in the status strip.
 
@@ -416,7 +520,7 @@ different opponent), or a fresh setup.
 
 ---
 
-## 4. Phase 5 — the human + AI sandbox
+## 5. Phase 5 — the human + AI sandbox
 
 ### Who is in control, always on screen
 
@@ -568,7 +672,7 @@ worth looking at.
 
 ---
 
-## 5. Phase 4 — natural-language autonomy
+## 6. Phase 4 — natural-language autonomy
 
 ### The sentence is the interface
 
@@ -701,7 +805,7 @@ Plus: *"I want 100,000 new residents with $1M."* → constraint conflict + best 
 
 ---
 
-## 6. Phase 3 — autonomous construction
+## 7. Phase 3 — autonomous construction
 
 ### One clock, not a pile of flags
 
@@ -783,7 +887,7 @@ result every time.
 
 ---
 
-## 7. Phase 2 — the AI City Optimizer
+## 8. Phase 2 — the AI City Optimizer
 
 ### The pipeline
 
@@ -893,7 +997,7 @@ After construction and re-simulation:
 
 ---
 
-## 8. What Phase 1 already provided
+## 9. What Phase 1 already provided
 
 **Simulation engine** — 10 independent models behind one boundary, all transparent formulas:
 
@@ -974,7 +1078,7 @@ transit capacity · **4.** Add a new road connection.
 
 ---
 
-## 9. What should be built next
+## 10. What should be built next
 
 **Understanding**
 - Swap `localCityAI` for an LLM-backed `CityAIProvider` at the existing seam. The lexicon handles
@@ -1021,6 +1125,11 @@ transit capacity · **4.** Add a new road connection.
   `verify:challenge`, so
   tuning a constant or a regex cannot silently change the headline demo, flip the AI's
   recommendation, break a phrasing that used to parse, or send the autonomous agent bankrupt.
+
+**Demo mode**
+- Per-shot camera keyframes, so a shot can move through several framings rather than one.
+- An export that drives the recorder directly, instead of capturing the window.
+- A narration track — the timing is already there, only the audio is missing.
 
 **The challenge**
 - Let the AI demolish and rezone, not only add — it currently plays with one hand.

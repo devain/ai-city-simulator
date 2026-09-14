@@ -4,6 +4,7 @@ import { MODES, MODE_ORDER } from '../../sandbox/modes'
 import { formatTick } from '../../sandbox/history'
 import { money } from '../../lib/format'
 import { useChallengeStore } from '../../store/useChallengeStore'
+import { DemoModeButton } from './DemoStage'
 
 const HEALTH_TONE: Record<string, string> = {
   EXCELLENT: 'text-emerald-300',
@@ -187,6 +188,8 @@ export function SandboxBar({ onShowHistory }: { onShowHistory: () => void }) {
         >
           History
         </button>
+
+        <DemoModeButton compact />
 
         <button
           onClick={openChallenge}
