@@ -1,0 +1,153 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  --grid: rgba(56, 240, 255, 0.055);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  background: #04070f;
+  color: #e6f2ff;
+  overscroll-behavior: none;
+}
+
+body {
+  font-family: Inter, system-ui, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+@layer components {
+  .glass {
+    @apply relative rounded-xl border border-white/[0.07] bg-white/[0.025] shadow-glass backdrop-blur-xl;
+  }
+
+  .glass-strong {
+    @apply relative rounded-xl border border-white/10 bg-[#070d1a]/80 shadow-glass backdrop-blur-2xl;
+  }
+
+  .panel-title {
+    @apply flex items-center gap-2 font-mono text-[10px] font-medium uppercase tracking-[0.22em] text-cyan-300/70;
+  }
+
+  .hairline {
+    @apply h-px w-full bg-gradient-to-r from-transparent via-cyan-400/20 to-transparent;
+  }
+
+  .btn {
+    @apply relative select-none rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-[11px] font-medium tracking-wide text-slate-200 transition-all duration-200 hover:border-cyan-300/40 hover:bg-cyan-300/[0.07] hover:text-white active:scale-[0.98];
+  }
+
+  .btn-active {
+    @apply border-cyan-300/60 bg-cyan-300/[0.12] text-white shadow-glow;
+  }
+
+  .btn-primary {
+    @apply relative overflow-hidden rounded-lg border border-cyan-300/50 bg-gradient-to-b from-cyan-400/25 to-cyan-500/10 px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-50 shadow-glow transition-all duration-200 hover:from-cyan-300/35 hover:to-cyan-400/20 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40;
+  }
+
+  .chip {
+    @apply rounded-full border border-white/10 bg-white/[0.04] px-2 py-[3px] font-mono text-[9px] uppercase tracking-[0.14em] text-slate-300;
+  }
+
+  .scroll-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(56, 240, 255, 0.22) transparent;
+  }
+  .scroll-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scroll-thin::-webkit-scrollbar-thumb {
+    background: rgba(56, 240, 255, 0.22);
+    border-radius: 99px;
+  }
+  .scroll-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+/* faint technical grid behind the whole app */
+.bg-techgrid {
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 42px 42px;
+}
+
+.text-glow {
+  text-shadow: 0 0 18px rgba(56, 240, 255, 0.45);
+}
+
+.scan::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(56, 240, 255, 0.05) 48%,
+    transparent 100%
+  );
+  mix-blend-mode: screen;
+}
+
+input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  height: 18px;
+}
+input[type='range']::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 99px;
+  background: linear-gradient(90deg, rgba(56, 240, 255, 0.55), rgba(56, 240, 255, 0.12));
+}
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  margin-top: -6px;
+  height: 15px;
+  width: 15px;
+  border-radius: 99px;
+  background: #b9f6ff;
+  border: 1px solid rgba(56, 240, 255, 0.9);
+  box-shadow: 0 0 12px rgba(56, 240, 255, 0.7);
+  cursor: pointer;
+}
+input[type='range']::-moz-range-track {
+  height: 3px;
+  border-radius: 99px;
+  background: rgba(56, 240, 255, 0.3);
+}
+input[type='range']::-moz-range-thumb {
+  height: 14px;
+  width: 14px;
+  border: 1px solid rgba(56, 240, 255, 0.9);
+  border-radius: 99px;
+  background: #b9f6ff;
+}
+
+.recharts-cartesian-axis-tick text {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  fill: rgba(203, 232, 255, 0.42);
+}
+.recharts-default-tooltip {
+  background: rgba(6, 12, 24, 0.94) !important;
+  border: 1px solid rgba(56, 240, 255, 0.25) !important;
+  border-radius: 10px !important;
+  font-size: 11px !important;
+  box-shadow: 0 12px 40px -14px rgba(0, 0, 0, 0.9);
+}
+
+/* the decision-moment countdown: the match resumes when this runs out */
+@keyframes decisionHold {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}

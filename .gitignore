@@ -1,0 +1,15 @@
+node_modules
+dist
+.vite
+*.local
+.DS_Store
+
+# build artefacts
+tsconfig.tsbuildinfo
+scripts/*.mjs
+
+# tooling scratch
+.playwright-mcp
+
+# demo recordings — large, and regenerable from the app itself
+media/
