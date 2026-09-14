@@ -30,6 +30,7 @@ import { DEFAULT_SETUP } from '../challenge/ChallengeConfig'
 import { CATALOGUE_BY_ID } from '../sandbox/catalogue'
 import { sandboxPlan } from '../sandbox/sandboxPlan'
 import { bestFreeSlot } from '../sandbox/siting'
+import { clock, setHour } from '../lib/clock'
 
 /** The seed every recording starts from, so two takes match. */
 export const DEMO_SEED = 20250114
@@ -123,6 +124,16 @@ export const useDemoStore = create<DemoState>((set, get) => ({
     useOptimizerStore.getState().resetOptimizer()
     useSandboxStore.setState({ activeItemId: null, ghost: null, impact: null, demolishMode: false })
     useCityStore.setState({ heatLayer: 'none', selectedBuilding: null, hoveredBuilding: null })
+
+    /*
+     * Pin the time of day. The city clock normally runs, so without this the
+     * demo's lighting depends on when the button was pressed — two takes would
+     * not match, and the winner card could land in the middle of the night.
+     * Late afternoon: long shadows, windows starting to light, and it barely
+     * moves across 88 seconds at this speed.
+     */
+    setHour(16.4)
+    clock.speed = 0.05
 
     set({
       active: true,

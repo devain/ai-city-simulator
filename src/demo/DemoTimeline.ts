@@ -339,7 +339,7 @@ export const DEMO_TIMELINE: StageSpec[] = [
           : '',
     ],
     speed: 0,
-    ui: { cities: true, letterbox: true, dim: 0.52 },
+    ui: { cities: true, letterbox: true, dim: 0.38 },
     enter: () => {
       shots.pullBack('human', 4600)
       shots.pullBack('ai', 4600)
@@ -352,7 +352,7 @@ export const DEMO_TIMELINE: StageSpec[] = [
     title: 'CAN YOU DO BETTER?',
     lines: ['Same city. Same money. Ten years.'],
     speed: 0,
-    ui: { cities: true, letterbox: true, dim: 0.66 },
+    ui: { cities: true, letterbox: true, dim: 0.5 },
     enter: () => {
       shots.pullBack('human', 5000)
       shots.pullBack('ai', 5000)
